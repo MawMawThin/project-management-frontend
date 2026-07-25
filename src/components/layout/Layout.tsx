@@ -9,7 +9,9 @@ export function Layout() {
   const { user, logout } = useAuth()
   const { projects, projectId, setProjectId, project } = useProject()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [projectOpen, setProjectOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const projectRef = useRef<HTMLDivElement>(null)
 
   const initial =
     user?.name.trim().charAt(0).toUpperCase() ||
@@ -32,16 +34,23 @@ export function Layout() {
   ]
 
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen && !projectOpen) return
 
     function onPointerDown(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      const target = e.target as Node
+      if (menuOpen && menuRef.current && !menuRef.current.contains(target)) {
         setMenuOpen(false)
+      }
+      if (projectOpen && projectRef.current && !projectRef.current.contains(target)) {
+        setProjectOpen(false)
       }
     }
 
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setMenuOpen(false)
+      if (e.key === 'Escape') {
+        setMenuOpen(false)
+        setProjectOpen(false)
+      }
     }
 
     document.addEventListener('mousedown', onPointerDown)
@@ -50,7 +59,7 @@ export function Layout() {
       document.removeEventListener('mousedown', onPointerDown)
       document.removeEventListener('keydown', onKeyDown)
     }
-  }, [menuOpen])
+  }, [menuOpen, projectOpen])
 
   return (
     <div className="app-shell">
@@ -59,20 +68,45 @@ export function Layout() {
           <h1>Project Management</h1>
           <p>Schedule · Bugs · Structure · Minutes</p>
         </div>
-        <div className="project-switcher">
-          <label className="project-switcher-label">Current project</label>
-          <select
-            value={projectId ?? ''}
-            onChange={(e) => setProjectId(e.target.value)}
+        <div className="project-switcher" ref={projectRef}>
+          <span className="project-switcher-label" id="project-switcher-label">
+            Current project
+          </span>
+          <button
+            type="button"
+            className="project-switcher-trigger"
+            aria-labelledby="project-switcher-label"
+            aria-haspopup="listbox"
+            aria-expanded={projectOpen}
             disabled={!projects.length}
+            onClick={() => setProjectOpen((open) => !open)}
           >
-            {projects.length === 0 ? <option value="">No projects</option> : null}
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+            <span className="project-switcher-value">
+              {project?.name ?? (projects.length ? 'Select project' : 'No projects')}
+            </span>
+            <span className="project-switcher-caret" aria-hidden>
+              ▾
+            </span>
+          </button>
+          {projectOpen && projects.length > 0 ? (
+            <ul className="project-switcher-menu" role="listbox" aria-labelledby="project-switcher-label">
+              {projects.map((p) => (
+                <li key={p.id} role="option" aria-selected={p.id === projectId}>
+                  <button
+                    type="button"
+                    className={p.id === projectId ? 'is-active' : undefined}
+                    onClick={() => {
+                      setProjectId(p.id)
+                      setProjectOpen(false)
+                    }}
+                  >
+                    <span className="project-option-name">{p.name}</span>
+                    <span className="project-option-status">{p.status}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
           {project ? <div className="project-switcher-status">{project.status}</div> : null}
         </div>
         <nav className="nav">
