@@ -1,10 +1,13 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
+import { useProject } from '../../auth/ProjectContext'
 import { canManageMembers } from '../../auth/authStorage'
 import { labelRole } from '../../utils/labels'
+import { API_BASE_URL } from '../../api/client'
 
 export function Layout() {
   const { user, logout } = useAuth()
+  const { projects, projectId, setProjectId, project } = useProject()
 
   const links = [
     { to: '/', label: 'My Work', icon: '★', end: true },
@@ -14,7 +17,10 @@ export function Layout() {
     { to: '/structure', label: 'Project Structure', icon: '⧉', end: false },
     { to: '/meetings', label: 'Meeting Minutes', icon: '✎', end: false },
     ...(canManageMembers(user?.role)
-      ? [{ to: '/members', label: 'Team Members', icon: '☺', end: false }]
+      ? [
+          { to: '/projects', label: 'Projects', icon: '▣', end: false },
+          { to: '/members', label: 'Team Members', icon: '☺', end: false },
+        ]
       : []),
   ]
 
@@ -24,6 +30,29 @@ export function Layout() {
         <div className="brand">
           <h1>Project Management</h1>
           <p>Schedule · Bugs · Structure · Minutes</p>
+        </div>
+        <div className="project-switcher" style={{ padding: '0 16px 12px' }}>
+          <label className="muted" style={{ display: 'block', fontSize: 12, marginBottom: 4 }}>
+            Current project
+          </label>
+          <select
+            value={projectId ?? ''}
+            onChange={(e) => setProjectId(e.target.value)}
+            style={{ width: '100%' }}
+            disabled={!projects.length}
+          >
+            {projects.length === 0 ? <option value="">No projects</option> : null}
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+          {project ? (
+            <div className="muted" style={{ fontSize: 11, marginTop: 4, color: '#9db0c2' }}>
+              {project.status}
+            </div>
+          ) : null}
         </div>
         <nav className="nav">
           {links.map((l) => (
@@ -47,7 +76,7 @@ export function Layout() {
               </button>
             </div>
           ) : null}
-          <div style={{ marginTop: 8, opacity: 0.7 }}>API · localhost:8080</div>
+          <div style={{ marginTop: 8, opacity: 0.7, fontSize: 11, wordBreak: 'break-all' }}>{API_BASE_URL}</div>
         </div>
       </aside>
       <main className="main">

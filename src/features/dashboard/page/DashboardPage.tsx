@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { dashboardApi, scheduleApi, bugApi } from '../../../api/services'
+import { useProject } from '../../../auth/ProjectContext'
 import type { DashboardSummary, ScheduleTask, Bug } from '../../../types'
 import { PriorityPill, StatusPill, LoadingState, ErrorState } from '../../../components/ui'
 import { labelBugStatus, labelTaskStatus } from '../../../utils/labels'
 
 export function DashboardPage() {
+  const { projectId } = useProject()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [tasks, setTasks] = useState<ScheduleTask[]>([])
   const [bugs, setBugs] = useState<Bug[]>([])
@@ -13,13 +15,20 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
+    if (!projectId) {
+      setSummary(null)
+      setTasks([])
+      setBugs([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
       const [s, t, b] = await Promise.all([
-        dashboardApi.getSummary(),
-        scheduleApi.getAll(),
-        bugApi.getAll(),
+        dashboardApi.getSummary(projectId),
+        scheduleApi.getAll(projectId),
+        bugApi.getAll(projectId),
       ])
       setSummary(s)
       setTasks(t.filter((x) => x.status !== 'DONE').slice(0, 5))
@@ -34,12 +43,13 @@ export function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [projectId])
 
   useEffect(() => {
     void load()
   }, [load])
 
+  if (!projectId) return <LoadingState text="Select or create a project" />
   if (loading) return <LoadingState text="Loading dashboard…" />
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
 

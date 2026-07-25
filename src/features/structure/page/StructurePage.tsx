@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { memberApi, structureApi } from '../../../api/services'
 import { useAuth } from '../../../auth/AuthContext'
+import { useProject } from '../../../auth/ProjectContext'
 import { canManageStructure } from '../../../auth/authStorage'
 import type { Member, StructureNode, StructureNodeInput, StructureNodeType, StructureStatus } from '../../../types'
 import { Modal, StatusPill, LoadingState, ErrorState } from '../../../components/ui'
@@ -9,6 +10,7 @@ import { labelStructureStatus } from '../../../utils/labels'
 type NodeForm = StructureNodeInput
 
 const emptyForm: NodeForm = {
+  projectId: '',
   parentId: null,
   name: '',
   type: 'MODULE',
@@ -19,6 +21,7 @@ const emptyForm: NodeForm = {
 
 export function StructurePage() {
   const { user } = useAuth()
+  const { projectId } = useProject()
   const canWrite = canManageStructure(user?.role)
   const [members, setMembers] = useState<Member[]>([])
   const [tree, setTree] = useState<StructureNode[]>([])
@@ -29,10 +32,16 @@ export function StructurePage() {
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
+    if (!projectId) {
+      setMembers([])
+      setTree([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      const [m, t] = await Promise.all([memberApi.getAll(), structureApi.getTree()])
+      const [m, t] = await Promise.all([memberApi.getAll(), structureApi.getTree(projectId)])
       setMembers(m)
       setTree(t)
     } catch (e) {
@@ -40,7 +49,7 @@ export function StructurePage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [projectId])
 
   useEffect(() => {
     void load()
@@ -49,6 +58,7 @@ export function StructurePage() {
   function openCreate(parentId: string | null = null) {
     setForm({
       ...emptyForm,
+      projectId: projectId!,
       parentId,
       type: parentId ? 'FEATURE' : 'MODULE',
       ownerId: members[0]?.id ?? '',
@@ -62,6 +72,7 @@ export function StructurePage() {
     try {
       await structureApi.create({
         ...form,
+        projectId: projectId!,
         parentId: form.parentId || null,
         ownerId: form.ownerId || undefined,
       })
@@ -84,6 +95,7 @@ export function StructurePage() {
     }
   }
 
+  if (!projectId) return <LoadingState text="Select or create a project" />
   if (loading) return <LoadingState text="Loading structure…" />
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
 

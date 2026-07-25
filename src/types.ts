@@ -13,6 +13,13 @@ export interface Member {
   role: MemberRole
 }
 
+export interface Project {
+  id: string
+  name: string
+  description?: string
+  status: string
+}
+
 export interface DashboardSummary {
   activeTasks: number
   openBugs: number
@@ -22,6 +29,7 @@ export interface DashboardSummary {
 
 export interface ScheduleTask {
   id: string
+  projectId?: string
   title: string
   description: string
   assignedBy: Member
@@ -33,6 +41,7 @@ export interface ScheduleTask {
 }
 
 export interface ScheduleTaskInput {
+  projectId: string
   title: string
   description: string
   assignedById: string
@@ -45,6 +54,7 @@ export interface ScheduleTaskInput {
 
 export interface Bug {
   id: string
+  projectId?: string
   name: string
   detail: string
   level: PriorityLevel
@@ -55,6 +65,7 @@ export interface Bug {
 }
 
 export interface BugInput {
+  projectId: string
   name: string
   detail: string
   level: PriorityLevel
@@ -65,6 +76,7 @@ export interface BugInput {
 
 export interface StructureNode {
   id: string
+  projectId?: string
   name: string
   type: StructureNodeType
   description?: string
@@ -74,6 +86,7 @@ export interface StructureNode {
 }
 
 export interface StructureNodeInput {
+  projectId: string
   name: string
   type: StructureNodeType
   description?: string
@@ -92,6 +105,7 @@ export interface ActionItem {
 
 export interface Meeting {
   id: string
+  projectId?: string
   title: string
   date: string
   agenda: string
@@ -109,6 +123,7 @@ export interface ActionItemInput {
 }
 
 export interface MeetingInput {
+  projectId: string
   title: string
   date: string
   agenda: string
@@ -116,3 +131,10 @@ export interface MeetingInput {
   attendeeIds: string[]
   actionItems: ActionItemInput[]
 }
+
+export interface ProjectInput {
+  name: string
+  description?: string
+  status?: string
+}
+

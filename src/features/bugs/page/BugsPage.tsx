@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { bugApi, memberApi } from '../../../api/services'
 import { useAuth } from '../../../auth/AuthContext'
+import { useProject } from '../../../auth/ProjectContext'
 import { canDeleteBugs, canWriteBugs, isLeader } from '../../../auth/authStorage'
 import type { Bug, BugInput, BugPhase, BugStatus, Member, PriorityLevel } from '../../../types'
 import { Modal, PriorityPill, StatusPill, LoadingState, ErrorState } from '../../../components/ui'
@@ -11,6 +12,7 @@ const levels: PriorityLevel[] = ['LOW', 'MEDIUM', 'HIGH']
 const statuses: BugStatus[] = ['OPEN', 'IN_PROGRESS', 'FIXED', 'CLOSED', 'REOPENED']
 
 const emptyForm: BugInput = {
+  projectId: '',
   name: '',
   detail: '',
   level: 'MEDIUM',
@@ -21,6 +23,7 @@ const emptyForm: BugInput = {
 
 export function BugsPage() {
   const { user } = useAuth()
+  const { projectId } = useProject()
   const canWrite = canWriteBugs(user?.role)
   const canDelete = canDeleteBugs(user?.role)
   const leader = isLeader(user?.role)
@@ -44,10 +47,16 @@ export function BugsPage() {
   }
 
   const load = useCallback(async () => {
+    if (!projectId) {
+      setMembers([])
+      setBugs([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      const [m, b] = await Promise.all([memberApi.getAll(), bugApi.getAll(phase)])
+      const [m, b] = await Promise.all([memberApi.getAll(), bugApi.getAll(projectId, phase)])
       setMembers(m)
       setBugs(b)
     } catch (e) {
@@ -55,7 +64,7 @@ export function BugsPage() {
     } finally {
       setLoading(false)
     }
-  }, [phase])
+  }, [projectId, phase])
 
   useEffect(() => {
     void load()
@@ -76,6 +85,7 @@ export function BugsPage() {
     setEditing(null)
     setForm({
       ...emptyForm,
+      projectId: projectId!,
       phase: phase === 'ALL' ? 'PHASE_2' : phase,
       assigneeIds: [members.find((m) => m.role === 'DEVELOPER')?.id ?? members[0]?.id].filter(Boolean) as string[],
     })
@@ -85,6 +95,7 @@ export function BugsPage() {
   function openEdit(bug: Bug) {
     setEditing(bug)
     setForm({
+      projectId: projectId!,
       name: bug.name,
       detail: bug.detail ?? '',
       level: bug.level,
@@ -129,6 +140,7 @@ export function BugsPage() {
     }
   }
 
+  if (!projectId) return <LoadingState text="Select or create a project" />
   if (loading) return <LoadingState text="Loading bugs…" />
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
 

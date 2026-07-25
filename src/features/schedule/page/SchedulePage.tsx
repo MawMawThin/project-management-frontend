@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { memberApi, scheduleApi } from '../../../api/services'
 import { useAuth } from '../../../auth/AuthContext'
+import { useProject } from '../../../auth/ProjectContext'
 import { canCreateSchedule, isLeader } from '../../../auth/authStorage'
 import type { Member, PriorityLevel, ScheduleTask, ScheduleTaskInput, TaskStatus } from '../../../types'
 import { Modal, PriorityPill, StatusPill, LoadingState, ErrorState } from '../../../components/ui'
@@ -10,6 +11,7 @@ const priorities: PriorityLevel[] = ['LOW', 'MEDIUM', 'HIGH']
 const statuses: TaskStatus[] = ['TODO', 'IN_PROGRESS', 'DONE', 'BLOCKED']
 
 const emptyForm: ScheduleTaskInput = {
+  projectId: '',
   title: '',
   description: '',
   assignedById: '',
@@ -22,6 +24,7 @@ const emptyForm: ScheduleTaskInput = {
 
 export function SchedulePage() {
   const { user } = useAuth()
+  const { projectId } = useProject()
   const leader = isLeader(user?.role)
   const canCreate = canCreateSchedule(user?.role)
   const [members, setMembers] = useState<Member[]>([])
@@ -45,10 +48,16 @@ export function SchedulePage() {
   }
 
   const load = useCallback(async () => {
+    if (!projectId) {
+      setMembers([])
+      setTasks([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      const [m, t] = await Promise.all([memberApi.getAll(), scheduleApi.getAll()])
+      const [m, t] = await Promise.all([memberApi.getAll(), scheduleApi.getAll(projectId)])
       setMembers(m)
       setTasks(t)
     } catch (e) {
@@ -56,7 +65,7 @@ export function SchedulePage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [projectId])
 
   useEffect(() => {
     void load()
@@ -77,6 +86,7 @@ export function SchedulePage() {
     setEditing(null)
     setForm({
       ...emptyForm,
+      projectId: projectId!,
       assignedById: leaders[0]?.id ?? '',
       assignedToId: developers[0]?.id ?? '',
       startDate: new Date().toISOString().slice(0, 10),
@@ -88,6 +98,7 @@ export function SchedulePage() {
   function openEdit(task: ScheduleTask) {
     setEditing(task)
     setForm({
+      projectId: projectId!,
       title: task.title,
       description: task.description ?? '',
       assignedById: task.assignedBy.id,
@@ -128,6 +139,7 @@ export function SchedulePage() {
     }
   }
 
+  if (!projectId) return <LoadingState text="Select or create a project" />
   if (loading) return <LoadingState text="Loading schedule…" />
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
 

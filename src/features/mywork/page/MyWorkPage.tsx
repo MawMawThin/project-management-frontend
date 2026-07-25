@@ -2,22 +2,30 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { bugApi, scheduleApi } from '../../../api/services'
 import { useAuth } from '../../../auth/AuthContext'
+import { useProject } from '../../../auth/ProjectContext'
 import type { Bug, ScheduleTask } from '../../../types'
 import { PriorityPill, StatusPill, LoadingState, ErrorState } from '../../../components/ui'
 import { labelBugStatus, labelTaskStatus } from '../../../utils/labels'
 
 export function MyWorkPage() {
   const { user } = useAuth()
+  const { projectId } = useProject()
   const [tasks, setTasks] = useState<ScheduleTask[]>([])
   const [bugs, setBugs] = useState<Bug[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
+    if (!projectId) {
+      setTasks([])
+      setBugs([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      const [t, b] = await Promise.all([scheduleApi.getAll(), bugApi.getAll('ALL')])
+      const [t, b] = await Promise.all([scheduleApi.getAll(projectId), bugApi.getAll(projectId, 'ALL')])
       setTasks(t)
       setBugs(b)
     } catch (e) {
@@ -25,7 +33,7 @@ export function MyWorkPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [projectId])
 
   useEffect(() => {
     void load()
@@ -61,6 +69,7 @@ export function MyWorkPage() {
       .sort((a, c) => (a.dueDate ?? '').localeCompare(c.dueDate ?? ''))
   }, [tasks, user?.id])
 
+  if (!projectId) return <LoadingState text="Select or create a project" />
   if (loading) return <LoadingState text="Loading your work…" />
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
 

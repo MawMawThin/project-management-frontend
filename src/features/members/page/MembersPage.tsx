@@ -57,7 +57,7 @@ export function MembersPage() {
 
   function openCreate() {
     setEditing(null)
-    setForm({ ...emptyForm, role: 'DEVELOPER', password: 'Pass123!' })
+    setForm({ ...emptyForm, role: 'DEVELOPER', password: '' })
     setOpen(true)
   }
 

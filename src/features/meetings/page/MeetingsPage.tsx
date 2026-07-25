@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { meetingApi, memberApi } from '../../../api/services'
 import { useAuth } from '../../../auth/AuthContext'
+import { useProject } from '../../../auth/ProjectContext'
 import { canWriteMeetings } from '../../../auth/authStorage'
 import type { ActionItemInput, Meeting, MeetingInput, Member } from '../../../types'
 import { Modal, LoadingState, ErrorState } from '../../../components/ui'
@@ -12,6 +13,7 @@ type FormState = MeetingInput & {
 }
 
 const emptyForm = (): FormState => ({
+  projectId: '',
   title: '',
   date: '',
   agenda: '',
@@ -25,6 +27,7 @@ const emptyForm = (): FormState => ({
 
 export function MeetingsPage() {
   const { user } = useAuth()
+  const { projectId } = useProject()
   const canWrite = canWriteMeetings(user?.role)
   const [members, setMembers] = useState<Member[]>([])
   const [meetings, setMeetings] = useState<Meeting[]>([])
@@ -37,10 +40,16 @@ export function MeetingsPage() {
   const [saving, setSaving] = useState(false)
 
   const load = useCallback(async () => {
+    if (!projectId) {
+      setMembers([])
+      setMeetings([])
+      setLoading(false)
+      return
+    }
     setLoading(true)
     setError('')
     try {
-      const [m, mt] = await Promise.all([memberApi.getAll(), meetingApi.getAll()])
+      const [m, mt] = await Promise.all([memberApi.getAll(), meetingApi.getAll(projectId)])
       setMembers(m)
       setMeetings(mt)
     } catch (e) {
@@ -48,7 +57,7 @@ export function MeetingsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [projectId])
 
   useEffect(() => {
     void load()
@@ -58,6 +67,7 @@ export function MeetingsPage() {
     setEditing(null)
     setForm({
       ...emptyForm(),
+      projectId: projectId!,
       date: new Date().toISOString().slice(0, 10),
       attendeeIds: members.map((m) => m.id),
       actionOwner: members[0]?.id ?? '',
@@ -69,6 +79,7 @@ export function MeetingsPage() {
   function openEdit(m: Meeting) {
     setEditing(m)
     setForm({
+      projectId: projectId!,
       title: m.title,
       date: m.date,
       agenda: m.agenda ?? '',
@@ -112,6 +123,7 @@ export function MeetingsPage() {
     if (!form.title.trim()) return
     setSaving(true)
     const payload: MeetingInput = {
+      projectId: projectId!,
       title: form.title.trim(),
       date: form.date,
       agenda: form.agenda,
@@ -150,6 +162,7 @@ export function MeetingsPage() {
     }
   }
 
+  if (!projectId) return <LoadingState text="Select or create a project" />
   if (loading) return <LoadingState text="Loading meetings…" />
   if (error) return <ErrorState message={error} onRetry={() => void load()} />
 
