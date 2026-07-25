@@ -29,7 +29,7 @@ export function BugsPage() {
   const leader = isLeader(user?.role)
   const [members, setMembers] = useState<Member[]>([])
   const [bugs, setBugs] = useState<Bug[]>([])
-  const [phase, setPhase] = useState<BugPhase | 'ALL'>('PHASE_2')
+  const [phase, setPhase] = useState<BugPhase | 'ALL'>('ALL')
   const [scope, setScope] = useState<'mine' | 'all'>(leader || user?.role === 'QA' ? 'all' : 'mine')
   const [level, setLevel] = useState('all')
   const [status, setStatus] = useState('all')
