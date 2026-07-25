@@ -8,8 +8,8 @@ export function LoginPage() {
   const location = useLocation()
   const from = (location.state as { from?: string } | null)?.from ?? '/'
 
-  const [username, setUsername] = useState('leader')
-  const [password, setPassword] = useState('Pass123!')
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -56,16 +56,6 @@ export function LoginPage() {
         <button type="submit" className="btn btn-primary" disabled={loading} style={{ width: '100%' }}>
           {loading ? 'Signing in…' : 'Sign in'}
         </button>
-
-        <div className="login-hint muted">
-          Demo password for all: <code>Pass123!</code>
-          <br />
-          Leader: <code>leader</code>
-          <br />
-          Developers: <code>than</code>, <code>min</code>, <code>hsu</code>, <code>thin</code>
-          <br />
-          QA: <code>qa</code>
-        </div>
       </form>
     </div>
   )
